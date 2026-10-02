@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+*.bin
+*.S
+*.o
+fp_fuzz.json

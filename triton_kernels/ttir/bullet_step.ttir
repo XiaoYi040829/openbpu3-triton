@@ -1,0 +1,64 @@
+// bullet_step.ttir — bullet3/OpenBPU3 后端的物理步进 kernel
+//
+// 与 bounce.ttir 的区别: 输出写到"同一页的连续区间"，
+//   out[0..7]  = y'
+//   out[8..15] = v'
+// 这样 host 侧一次仿真就能回读全部状态。
+//
+// 对应 Triton Python:
+//   @triton.jit
+//   def bullet_step(y_ptr, v_ptr, out_ptr):
+//       i  = tl.arange(0, 8)
+//       y  = tl.load(y_ptr + i);  v = tl.load(v_ptr + i)
+//       v2 = v + g*dt;            y2 = y + v2*dt
+//       hit = y2 < radius
+//       v3 = tl.where(hit, -v2*e, v2)
+//       y3 = tl.where(hit, radius, y2)
+//       tl.store(out_ptr + i,     y3)
+//       tl.store(out_ptr + 8 + i, v3)
+module {
+  tt.func public @bullet_step(%y_ptr: !tt.ptr<f32>, %v_ptr: !tt.ptr<f32>,
+                              %out_ptr: !tt.ptr<f32>) {
+    %dt  = arith.constant 4.16666667e-03 : f32
+    %g   = arith.constant -9.81 : f32
+    %rad = arith.constant 2.500000e-01 : f32
+    %e   = arith.constant 5.000000e-01 : f32
+    %c8  = arith.constant 8 : i32
+
+    %i = tt.make_range {end = 8 : i32, start = 0 : i32} : tensor<8xi32>
+
+    %yp0 = tt.splat %y_ptr : !tt.ptr<f32> -> tensor<8x!tt.ptr<f32>>
+    %yp  = tt.addptr %yp0, %i : tensor<8x!tt.ptr<f32>>, tensor<8xi32>
+    %y   = tt.load %yp : tensor<8x!tt.ptr<f32>>
+    %vp0 = tt.splat %v_ptr : !tt.ptr<f32> -> tensor<8x!tt.ptr<f32>>
+    %vp  = tt.addptr %vp0, %i : tensor<8x!tt.ptr<f32>>, tensor<8xi32>
+    %v   = tt.load %vp : tensor<8x!tt.ptr<f32>>
+
+    // 重力积分
+    %gdt  = arith.mulf %g, %dt : f32
+    %gdtv = tt.splat %gdt : f32 -> tensor<8xf32>
+    %v2   = arith.addf %v, %gdtv : tensor<8xf32>
+    %dtv  = tt.splat %dt : f32 -> tensor<8xf32>
+    %vdt  = arith.mulf %v2, %dtv : tensor<8xf32>
+    %y2   = arith.addf %y, %vdt : tensor<8xf32>
+
+    // 碰撞检测 + 冲量响应 (无分支, 避免 warp 内 lane 分歧)
+    %radv = tt.splat %rad : f32 -> tensor<8xf32>
+    %hit  = arith.cmpf olt, %y2, %radv : tensor<8xf32>
+    %ev   = tt.splat %e : f32 -> tensor<8xf32>
+    %nv   = arith.negf %v2 : tensor<8xf32>
+    %vb   = arith.mulf %nv, %ev : tensor<8xf32>
+    %v3   = arith.select %hit, %vb, %v2 : tensor<8xi1>, tensor<8xf32>
+    %y3   = arith.select %hit, %radv, %y2 : tensor<8xi1>, tensor<8xf32>
+
+    // 输出到连续区间: out[i]=y', out[8+i]=v'
+    %op0 = tt.splat %out_ptr : !tt.ptr<f32> -> tensor<8x!tt.ptr<f32>>
+    %opy = tt.addptr %op0, %i : tensor<8x!tt.ptr<f32>>, tensor<8xi32>
+    tt.store %opy, %y3 : tensor<8x!tt.ptr<f32>>
+    %c8v = tt.splat %c8 : i32 -> tensor<8xi32>
+    %i8  = arith.addi %i, %c8v : tensor<8xi32>
+    %opv = tt.addptr %op0, %i8 : tensor<8x!tt.ptr<f32>>, tensor<8xi32>
+    tt.store %opv, %v3 : tensor<8x!tt.ptr<f32>>
+    tt.return
+  }
+}

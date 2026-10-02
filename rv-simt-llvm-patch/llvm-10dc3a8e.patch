@@ -1,0 +1,31 @@
+diff --git a/llvm/lib/Target/RISCV/RISCVFeatures.td b/llvm/lib/Target/RISCV/RISCVFeatures.td
+index a78d78946..6d558393c 100644
+--- a/llvm/lib/Target/RISCV/RISCVFeatures.td
++++ b/llvm/lib/Target/RISCV/RISCVFeatures.td
+@@ -1142,6 +1142,14 @@ def HasVendorXCVelw
+      AssemblerPredicate<(any_of FeatureVendorXCVelw),
+                         "'XCVelw' (CORE-V Event Load Word)">;
+ 
++def FeatureVendorXPolarisSIMT
++    : RISCVExtension<"xpolarissimt", 1, 0,
++                     "'XPolarisSIMT' (PolarisGPU RV-SIMT)">;
++def HasVendorXPolarisSIMT
++    : Predicate<"Subtarget->hasVendorXPolarisSIMT()">,
++      AssemblerPredicate<(all_of FeatureVendorXPolarisSIMT),
++                         "'XPolarisSIMT' (PolarisGPU RV-SIMT)">;
++
+ def FeatureVendorXCVbitmanip
+     : RISCVExtension<"xcvbitmanip", 1, 0,
+                      "'XCVbitmanip' (CORE-V Bit Manipulation)">;
+diff --git a/llvm/lib/Target/RISCV/RISCVInstrInfo.td b/llvm/lib/Target/RISCV/RISCVInstrInfo.td
+index 9d574edb4..8f476d6bd 100644
+--- a/llvm/lib/Target/RISCV/RISCVInstrInfo.td
++++ b/llvm/lib/Target/RISCV/RISCVInstrInfo.td
+@@ -2043,6 +2043,7 @@ include "RISCVInstrInfoXTHead.td"
+ include "RISCVInstrInfoXSf.td"
+ include "RISCVInstrInfoSFB.td"
+ include "RISCVInstrInfoXCV.td"
++include "RISCVInstrInfoSIMT.td"
+ 
+ //===----------------------------------------------------------------------===//
+ // Global ISel

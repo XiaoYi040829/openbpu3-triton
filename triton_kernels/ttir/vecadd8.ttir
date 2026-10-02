@@ -1,0 +1,30 @@
+// vecadd8.ttir — 简单向量加法 Triton kernel
+//
+// 对应 Triton Python:
+//   @triton.jit
+//   def vecadd(a_ptr, b_ptr, c_ptr):
+//       i = tl.arange(0, 8)          # -> TID, 8 条 SIMT lane
+//       a = tl.load(a_ptr + i)
+//       b = tl.load(b_ptr + i)
+//       tl.store(c_ptr + i, a + b)
+module {
+  tt.func public @vecadd(%a_ptr: !tt.ptr<f32>, %b_ptr: !tt.ptr<f32>,
+                         %c_ptr: !tt.ptr<f32>) {
+    %i = tt.make_range {end = 8 : i32, start = 0 : i32} : tensor<8xi32>
+
+    %ap0 = tt.splat %a_ptr : !tt.ptr<f32> -> tensor<8x!tt.ptr<f32>>
+    %ap  = tt.addptr %ap0, %i : tensor<8x!tt.ptr<f32>>, tensor<8xi32>
+    %a   = tt.load %ap : tensor<8x!tt.ptr<f32>>
+
+    %bp0 = tt.splat %b_ptr : !tt.ptr<f32> -> tensor<8x!tt.ptr<f32>>
+    %bp  = tt.addptr %bp0, %i : tensor<8x!tt.ptr<f32>>, tensor<8xi32>
+    %b   = tt.load %bp : tensor<8x!tt.ptr<f32>>
+
+    %c   = arith.addf %a, %b : tensor<8xf32>
+
+    %cp0 = tt.splat %c_ptr : !tt.ptr<f32> -> tensor<8x!tt.ptr<f32>>
+    %cp  = tt.addptr %cp0, %i : tensor<8x!tt.ptr<f32>>, tensor<8xi32>
+    tt.store %cp, %c : tensor<8x!tt.ptr<f32>>
+    tt.return
+  }
+}

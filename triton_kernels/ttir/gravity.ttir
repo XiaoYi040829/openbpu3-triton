@@ -1,0 +1,52 @@
+// gravity.ttir — 重力积分的 Triton IR
+//
+// 对应 Triton Python:
+//   @triton.jit
+//   def gravity(y_ptr, v_ptr, oy_ptr, ov_ptr, dt, g):
+//       i  = tl.arange(0, 8)              # -> TID, 8 条 SIMT lane
+//       y  = tl.load(y_ptr + i)
+//       v  = tl.load(v_ptr + i)
+//       v2 = v + g * dt                   # 半隐式欧拉
+//       y2 = y + v2 * dt
+//       tl.store(oy_ptr + i, y2)
+//       tl.store(ov_ptr + i, v2)
+//
+// dt = 1/240 = 0.0041666667 -> f32 bits 0x3B888889
+// g  = -9.81                -> f32 bits 0xC11CF5C3
+module {
+  tt.func public @gravity(%y_ptr: !tt.ptr<f32>, %v_ptr: !tt.ptr<f32>,
+                          %oy_ptr: !tt.ptr<f32>, %ov_ptr: !tt.ptr<f32>) {
+    %dt = arith.constant 4.16666667e-03 : f32
+    %g  = arith.constant -9.81 : f32
+
+    // i = tl.arange(0, 8)  -> 各 lane 得到自己的序号
+    %i = tt.make_range {end = 8 : i32, start = 0 : i32} : tensor<8xi32>
+
+    // 载入 y, v
+    %yp0 = tt.splat %y_ptr : !tt.ptr<f32> -> tensor<8x!tt.ptr<f32>>
+    %yp  = tt.addptr %yp0, %i : tensor<8x!tt.ptr<f32>>, tensor<8xi32>
+    %y   = tt.load %yp : tensor<8x!tt.ptr<f32>>
+    %vp0 = tt.splat %v_ptr : !tt.ptr<f32> -> tensor<8x!tt.ptr<f32>>
+    %vp  = tt.addptr %vp0, %i : tensor<8x!tt.ptr<f32>>, tensor<8xi32>
+    %v   = tt.load %vp : tensor<8x!tt.ptr<f32>>
+
+    // v2 = v + g*dt
+    %gdt = arith.mulf %g, %dt : f32
+    %gdtv = tt.splat %gdt : f32 -> tensor<8xf32>
+    %v2  = arith.addf %v, %gdtv : tensor<8xf32>
+
+    // y2 = y + v2*dt
+    %dtv = tt.splat %dt : f32 -> tensor<8xf32>
+    %vdt = arith.mulf %v2, %dtv : tensor<8xf32>
+    %y2  = arith.addf %y, %vdt : tensor<8xf32>
+
+    // 存回
+    %oyp0 = tt.splat %oy_ptr : !tt.ptr<f32> -> tensor<8x!tt.ptr<f32>>
+    %oyp  = tt.addptr %oyp0, %i : tensor<8x!tt.ptr<f32>>, tensor<8xi32>
+    tt.store %oyp, %y2 : tensor<8x!tt.ptr<f32>>
+    %ovp0 = tt.splat %ov_ptr : !tt.ptr<f32> -> tensor<8x!tt.ptr<f32>>
+    %ovp  = tt.addptr %ovp0, %i : tensor<8x!tt.ptr<f32>>, tensor<8xi32>
+    tt.store %ovp, %v2 : tensor<8x!tt.ptr<f32>>
+    tt.return
+  }
+}

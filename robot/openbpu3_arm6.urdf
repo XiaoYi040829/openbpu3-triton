@@ -1,0 +1,208 @@
+<?xml version="1.0"?>
+<!--
+  openbpu3_arm6.urdf — 严格 6-DOF 机械臂，用于 OpenBPU-3 端到端机器人仿真
+
+  构型选择理由：标准 anthropomorphic + 球形腕（spherical wrist），
+  这类构型的逆运动学有**闭式解析解**，可以写成无分支的定长算术序列，
+  正好适合 SIMT 的 8 条 lane 并行（每 lane 解一个候选构型/一个时间步）。
+  若用迭代式 IK（如 pybullet 内置的 DLS）则含收敛循环，lane 间迭代次数不同，
+  会造成 warp 内严重分歧，不适合本硬件（SYNWARP 仅 SM 内有效）。
+
+  关节配置（Craig 约定）：
+    J1 base   绕 Z 旋转（腰）
+    J2 shoulder 绕 Y 旋转（肩）
+    J3 elbow    绕 Y 旋转（肘）
+    J4 wrist_1  绕 Z 旋转   ┐
+    J5 wrist_2  绕 Y 旋转   ├ 球形腕：三轴交于一点
+    J6 wrist_3  绕 Z 旋转   ┘
+
+  连杆长度（米）：d1=0.20 基座高, a2=0.40 上臂, a3=0.32 前臂, d6=0.10 末端
+-->
+<robot name="openbpu3_arm6">
+
+  <material name="steel"><color rgba="0.55 0.58 0.62 1"/></material>
+  <material name="joint_c"><color rgba="0.90 0.55 0.10 1"/></material>
+  <material name="tool_c"><color rgba="0.20 0.70 0.35 1"/></material>
+
+  <!-- ===== 基座 ===== -->
+  <link name="base_link">
+    <inertial>
+      <mass value="5.0"/>
+      <origin xyz="0 0 0.05"/>
+      <inertia ixx="0.05" iyy="0.05" izz="0.08" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0.05"/>
+      <geometry><cylinder radius="0.09" length="0.10"/></geometry>
+      <material name="steel"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0.05"/>
+      <geometry><cylinder radius="0.09" length="0.10"/></geometry>
+    </collision>
+  </link>
+
+  <!-- ===== J1: 腰 (绕 Z) ===== -->
+  <joint name="j1" type="revolute">
+    <parent link="base_link"/>
+    <child link="link1"/>
+    <origin xyz="0 0 0.10" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-3.14159" upper="3.14159" effort="150" velocity="2.0"/>
+    <dynamics damping="0.5" friction="0.1"/>
+  </joint>
+  <link name="link1">
+    <inertial>
+      <mass value="3.0"/>
+      <origin xyz="0 0 0.05"/>
+      <inertia ixx="0.02" iyy="0.02" izz="0.02" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0.05"/>
+      <geometry><cylinder radius="0.07" length="0.10"/></geometry>
+      <material name="joint_c"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0.05"/>
+      <geometry><cylinder radius="0.07" length="0.10"/></geometry>
+    </collision>
+  </link>
+
+  <!-- ===== J2: 肩 (绕 Y) ===== -->
+  <joint name="j2" type="revolute">
+    <parent link="link1"/>
+    <child link="link2"/>
+    <origin xyz="0 0 0.10" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-2.0944" upper="2.0944" effort="150" velocity="2.0"/>
+    <dynamics damping="0.5" friction="0.1"/>
+  </joint>
+  <link name="link2">
+    <inertial>
+      <mass value="2.5"/>
+      <origin xyz="0 0 0.20"/>
+      <inertia ixx="0.04" iyy="0.04" izz="0.01" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0.20"/>
+      <geometry><box size="0.08 0.08 0.40"/></geometry>
+      <material name="steel"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0.20"/>
+      <geometry><box size="0.08 0.08 0.40"/></geometry>
+    </collision>
+  </link>
+
+  <!-- ===== J3: 肘 (绕 Y) ===== -->
+  <joint name="j3" type="revolute">
+    <parent link="link2"/>
+    <child link="link3"/>
+    <origin xyz="0 0 0.40" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-2.6180" upper="2.6180" effort="120" velocity="2.5"/>
+    <dynamics damping="0.4" friction="0.1"/>
+  </joint>
+  <link name="link3">
+    <inertial>
+      <mass value="1.8"/>
+      <origin xyz="0 0 0.16"/>
+      <inertia ixx="0.02" iyy="0.02" izz="0.006" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0.16"/>
+      <geometry><box size="0.07 0.07 0.32"/></geometry>
+      <material name="joint_c"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0.16"/>
+      <geometry><box size="0.07 0.07 0.32"/></geometry>
+    </collision>
+  </link>
+
+  <!-- ===== J4: 腕1 (绕 Z) — 球形腕第一轴 ===== -->
+  <joint name="j4" type="revolute">
+    <parent link="link3"/>
+    <child link="link4"/>
+    <origin xyz="0 0 0.32" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-3.14159" upper="3.14159" effort="60" velocity="3.0"/>
+    <dynamics damping="0.2" friction="0.05"/>
+  </joint>
+  <link name="link4">
+    <inertial>
+      <mass value="0.8"/>
+      <inertia ixx="0.003" iyy="0.003" izz="0.003" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+    <visual>
+      <geometry><sphere radius="0.05"/></geometry>
+      <material name="steel"/>
+    </visual>
+    <collision><geometry><sphere radius="0.05"/></geometry></collision>
+  </link>
+
+  <!-- ===== J5: 腕2 (绕 Y) — 球形腕第二轴 ===== -->
+  <joint name="j5" type="revolute">
+    <parent link="link4"/>
+    <child link="link5"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-2.0944" upper="2.0944" effort="60" velocity="3.0"/>
+    <dynamics damping="0.2" friction="0.05"/>
+  </joint>
+  <link name="link5">
+    <inertial>
+      <mass value="0.6"/>
+      <inertia ixx="0.002" iyy="0.002" izz="0.002" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+    <visual>
+      <geometry><sphere radius="0.045"/></geometry>
+      <material name="joint_c"/>
+    </visual>
+    <collision><geometry><sphere radius="0.045"/></geometry></collision>
+  </link>
+
+  <!-- ===== J6: 腕3 (绕 Z) — 球形腕第三轴 ===== -->
+  <joint name="j6" type="revolute">
+    <parent link="link5"/>
+    <child link="link6"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-3.14159" upper="3.14159" effort="40" velocity="3.5"/>
+    <dynamics damping="0.1" friction="0.02"/>
+  </joint>
+  <link name="link6">
+    <inertial>
+      <mass value="0.4"/>
+      <origin xyz="0 0 0.05"/>
+      <inertia ixx="0.001" iyy="0.001" izz="0.001" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0.05"/>
+      <geometry><cylinder radius="0.03" length="0.10"/></geometry>
+      <material name="tool_c"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0.05"/>
+      <geometry><cylinder radius="0.03" length="0.10"/></geometry>
+    </collision>
+  </link>
+
+  <!-- ===== 末端执行器坐标系 (TCP) ===== -->
+  <joint name="tcp_fixed" type="fixed">
+    <parent link="link6"/>
+    <child link="tcp"/>
+    <origin xyz="0 0 0.10" rpy="0 0 0"/>
+  </joint>
+  <link name="tcp">
+    <inertial>
+      <mass value="0.01"/>
+      <inertia ixx="1e-5" iyy="1e-5" izz="1e-5" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+    <visual>
+      <geometry><sphere radius="0.018"/></geometry>
+      <material name="tool_c"/>
+    </visual>
+  </link>
+
+</robot>
