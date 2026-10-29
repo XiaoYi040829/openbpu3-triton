@@ -175,7 +175,7 @@ def t3_llvm_mc_roundtrip():
                 "END_WARP": "polaris.end_warp"}
         src = "\n".join(mnem[k] for k in mnem) + "\n"
         p1 = subprocess.run(
-            [LLVM_MC, "-triple=riscv64", "-mattr=+xpolarissimt",
+            [LLVM_MC, "-triple=riscv64", "-mattr=+xwenquxingsimt",
              "-show-encoding"], input=src, capture_output=True, text=True,
             timeout=60)
         if p1.returncode != 0:
