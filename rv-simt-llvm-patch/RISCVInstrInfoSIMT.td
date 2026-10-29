@@ -12,7 +12,7 @@
 //   1. 放到 llvm/lib/Target/RISCV/RISCVInstrInfoSIMT.td
 //   2. 在 llvm/lib/Target/RISCV/RISCVInstrInfo.td 末尾加：
 //        include "RISCVInstrInfoSIMT.td"
-//   3. 在 RISCVFeatures.td 里加 FeatureVendorXPolarisSIMT（见下方；
+//   3. 在 RISCVFeatures.td 里加 FeatureVendorXWenquxingSIMT（见下方；
 //      第 2、3 步即 llvm-10dc3a8e.patch）
 //
 //===----------------------------------------------------------------------===//
@@ -22,13 +22,13 @@
 //===----------------------------------------------------------------------===//
 // 放入 RISCVFeatures.td：
 //
-//   def FeatureVendorXPolarisSIMT
-//       : RISCVExtension<"xpolarissimt", 1, 0,
-//                        "'XPolarisSIMT' (PolarisGPU RV-SIMT)">;
-//   def HasVendorXPolarisSIMT
-//       : Predicate<"Subtarget->hasVendorXPolarisSIMT()">,
-//         AssemblerPredicate<(all_of FeatureVendorXPolarisSIMT),
-//                            "'XPolarisSIMT' (PolarisGPU RV-SIMT)">;
+//   def FeatureVendorXWenquxingSIMT
+//       : RISCVExtension<"xwenquxingsimt", 1, 0,
+//                        "'XWenquxingSIMT' (Wenquxing 26 RV-SIMT)">;
+//   def HasVendorXWenquxingSIMT
+//       : Predicate<"Subtarget->hasVendorXWenquxingSIMT()">,
+//         AssemblerPredicate<(all_of FeatureVendorXWenquxingSIMT),
+//                            "'XWenquxingSIMT' (Wenquxing 26 RV-SIMT)">;
 
 //===----------------------------------------------------------------------===//
 // 指令格式
@@ -65,7 +65,7 @@ class RVInstSIMTReg<bits<12> wop, string opcodestr>
 //===----------------------------------------------------------------------===//
 // RV-SIMT warp 控制指令 (Priviledged.scala:32-36)
 //===----------------------------------------------------------------------===//
-let Predicates = [HasVendorXPolarisSIMT] in {
+let Predicates = [HasVendorXWenquxingSIMT] in {
 
 // JOIN — SIMT 分支重汇聚。编码 0x00B0007B
 def POLARIS_JOIN       : RVInstSIMT<0x00B, "polaris.join">;
@@ -98,7 +98,7 @@ def POLARIS_TID : RVInstR<0b1100000, 0b000, OPC_OP, (outs GPR:$rd),
   let mayStore = 0;
 }
 
-} // Predicates = [HasVendorXPolarisSIMT]
+} // Predicates = [HasVendorXWenquxingSIMT]
 
 //===----------------------------------------------------------------------===//
 // 与 .insn 写法的对应

@@ -30,7 +30,7 @@ for p in [x for x in (FLAGTREE_PY, WS, os.path.join(WS, "triton_kernels")) if x]
     if p not in sys.path:
         sys.path.insert(0, p)
 
-EMU = os.environ.get("OPENBPU3_EMU", "emu")  # OpenBPU-3 周期精确模拟器
+EMU = os.environ.get("OPENBPU3_EMU", "emu")  # Wenquxing 26 周期精确模拟器
 ARG_BASE, ARG_STRIDE = 0x80002000, 0x1000
 N = 8
 

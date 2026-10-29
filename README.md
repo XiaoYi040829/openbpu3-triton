@@ -1,6 +1,6 @@
-# OpenBPU-3 Triton 后端
+# Wenquxing 26 Triton 后端
 
-面向 OpenBPU-3（PolarisGPU，RV64 + RV-SIMT，8 lane × 2 SM）的 Triton 编译后端，基于 FlagTree（FlagOS 统一编译器）。`@triton.jit` kernel 经 Triton 前端和本后端编译为 RV64 + RV-SIMT 机器码，可在 OpenBPU-3 的周期精确 RTL 模拟器上执行。仓库包含一个端到端示例：PyBullet 中的 6-DOF 机械臂追踪浮动球体，逆运动学在模拟器上计算。
+面向 Wenquxing 26（RTL 仓库名 PolarisGPU，RV64 + RV-SIMT，8 lane × 2 SM）的 Triton 编译后端，基于 FlagTree（FlagOS 统一编译器）。`@triton.jit` kernel 经 Triton 前端和本后端编译为 RV64 + RV-SIMT 机器码，可在 Wenquxing 26 的周期精确 RTL 模拟器上执行。仓库包含一个端到端示例：PyBullet 中的 6-DOF 机械臂追踪浮动球体，逆运动学在模拟器上计算。
 
 ## 仓库结构
 
@@ -67,7 +67,7 @@ python -c "from triton._C.libtriton import polaris; print(dir(polaris.passes.pol
 
 ### 5. 模拟器
 
-本仓库不含模拟器。执行 kernel 需要由 OpenBPU-3 RTL 编译出的 Verilator 模拟器（difftest 的 `emu`，使用 `-i <镜像> --no-diff -C <周期>`），用 `OPENBPU3_EMU` 指定其路径。
+本仓库不含模拟器。执行 kernel 需要由 Wenquxing 26 RTL 编译出的 Verilator 模拟器（difftest 的 `emu`，使用 `-i <镜像> --no-diff -C <周期>`），用 `OPENBPU3_EMU` 指定其路径。
 
 ## 运行
 
@@ -98,7 +98,7 @@ print(r["n_inst"], r["asm_path"])                   # 机器码在 r["words"]
 | `STEPS` | 机械臂示例的控制步数 |
 | `LLVM_MC` | 打过 `rv-simt-llvm-patch` 的 `llvm-mc`；未提供时该项记为 SKIP |
 | `LLVM_TBLGEN` | `llvm-tblgen`（系统自带即可，不需打补丁）；未提供时在 PATH 中查找，找不到记为 SKIP |
-| `POLARIS_RTL_DIR` | OpenBPU-3 RTL 的 `src/main/scala/nutcore`；提供时额外比对 RTL 中的编码 |
+| `POLARIS_RTL_DIR` | Wenquxing 26 RTL 的 `src/main/scala/nutcore`；提供时额外比对 RTL 中的编码 |
 | `POLARIS_STORE_PAD=N` | 每条 store 后插 N 个 nop（见局限性） |
 
 回归测试的汇总把通过、失败、跳过分开计数，只有失败才算不通过。缺少可选工具时，相应项显示为 SKIP。

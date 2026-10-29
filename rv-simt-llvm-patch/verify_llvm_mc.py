@@ -5,10 +5,10 @@ verify_llvm_mc.py — 验证打了补丁的 LLVM 能汇编/反汇编 RV-SIMT 指
 本脚本用已编译的 llvm-mc（含 RISCVInstrInfoSIMT.td 补丁）做三项检查：
   1. 汇编：助记符 -> 机器码，编码与 RTL 一致
   2. 反汇编：机器码 -> 助记符
-  3. 受控性：不带 -mattr=+xpolarissimt 时应报错（不污染标准 RISC-V）
+  3. 受控性：不带 -mattr=+xwenquxingsimt 时应报错（不污染标准 RISC-V）
 
 补丁位置：llvm/lib/Target/RISCV/RISCVInstrInfoSIMT.td
-         + RISCVFeatures.td 的 FeatureVendorXPolarisSIMT
+         + RISCVFeatures.td 的 FeatureVendorXWenquxingSIMT
          + RISCVInstrInfo.td 末尾的 include
 """
 import os
@@ -19,7 +19,7 @@ import sys
 MC_CANDIDATES = [
     os.path.expanduser("~/llvm-project/build-riscv/bin/llvm-mc"),
 ]
-ATTR = "+xpolarissimt"
+ATTR = "+xwenquxingsimt"
 
 # 助记符 -> 期望 32 位编码（取自 PolarisGPU RTL）
 CASES = [
@@ -27,6 +27,7 @@ CASES = [
     ("polaris.start_warp",      0x00C0007B),
     ("polaris.syn_warp",        0x00D0007B),
     ("polaris.end_warp",        0x00E0007B),
+    ("polaris.syn_warp_reg\ta5", 0x00F7807B),
     ("polaris.tid\tt1",         0xC0000333),
 ]
 fails = []
@@ -97,7 +98,7 @@ def main():
                         input="polaris.start_warp\n", capture_output=True,
                         text=True, timeout=120)
     check("未启用扩展时拒绝该指令",
-          "xpolarissimt" in r3.stderr or r3.returncode != 0,
+          "xwenquxingsimt" in r3.stderr or r3.returncode != 0,
           "(说明是受控 vendor 扩展，不污染标准 RISC-V)")
 
     print("\n" + "=" * 70)

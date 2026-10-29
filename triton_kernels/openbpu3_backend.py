@@ -26,7 +26,7 @@ import subprocess
 import sys
 
 WS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # 仓库根
-EMU = os.environ.get("OPENBPU3_EMU", "emu")  # OpenBPU-3 周期精确模拟器
+EMU = os.environ.get("OPENBPU3_EMU", "emu")  # Wenquxing 26 周期精确模拟器
 SIMT_WIDTH = 8               # NutCore.scala:96
 UART_TX = 0x40600004         # AXI4UART.scala:33/39
 CODE_BASE = 0x80000000
